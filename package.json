@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev:cli": "turbo run dev:cli",
-    "dev:dashboard": "turbo run dev:dashboard",
+    "dev:dashboard": "pnpm --filter @vouch/dashboard dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck"
