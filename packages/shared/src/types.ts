@@ -1,10 +1,10 @@
-export type Outcome = 'pass' | 'flag' | 'skip';
+export type Outcome = "pass" | "flag" | "skip";
 
 export interface VouchConfig {
-  provider: 'openrouter' | 'ollama' | 'anthropic';
+  provider: "openrouter" | "ollama" | "anthropic";
   model: string;
   min_questions: number;
-  sensitivity: 'low' | 'medium' | 'high';
+  sensitivity: "low" | "medium" | "high";
   watched_paths: string[];
   blocked_paths: string[];
   base_url?: string;
@@ -41,7 +41,7 @@ export interface Developer {
   github_username: string;
   email: string;
   name: string;
-  role: 'admin' | 'member';
+  role: "admin" | "member";
 }
 
 export interface Project {
