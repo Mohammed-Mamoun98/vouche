@@ -1,0 +1,22 @@
+{
+  "name": "vouch",
+  "packageManager": "pnpm@10.14.0",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:cli": "turbo run dev:cli",
+    "dev:dashboard": "turbo run dev:dashboard",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.13",
+    "tsup": "^8.0.0",
+    "typescript": "^5.5.0",
+    "turbo": "^2.0.0"
+  }
+}

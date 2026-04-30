@@ -1,0 +1,20 @@
+{
+  "name": "@vouch/cli",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "bin": {
+    "vouch": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsup --watch",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "dependencies": {
+    "@vouch/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "tsdown": "^0.21.10",
+    "typescript": "^5.5.0"
+  }
+}

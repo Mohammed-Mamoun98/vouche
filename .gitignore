@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+# Credentials & secrets
+.env
+.env.*
+!.env.example
+~/.vouch/credentials
+
+# Vouch config (user-specific, not committed)
+.vouchrc
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# pnpm
+.pnpm-store/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

@@ -1,0 +1,8 @@
+{
+  "provider": "openrouter",
+  "model": "anthropic/claude-3.5-sonnet",
+  "min_questions": 2,
+  "sensitivity": "high",
+  "watched_paths": ["src/", "lib/"],
+  "blocked_paths": ["*.lock", "dist/", "*.generated.ts"]
+}

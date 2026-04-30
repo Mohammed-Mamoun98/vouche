@@ -1,0 +1,16 @@
+{
+  "name": "@vouch/dashboard",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p .",
+    "dev": "tsc -p . --watch",
+    "typecheck": "tsc -p . --noEmit"
+  },
+  "dependencies": {
+    "@vouch/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}
