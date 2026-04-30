@@ -17,7 +17,13 @@ export async function generateQuestions(
 
   try {
     const parsed = JSON.parse(response);
-    if (Array.isArray(parsed)) return parsed;
+    if (
+      Array.isArray(parsed) &&
+      parsed.length > 0 &&
+      parsed.every((q: unknown) => typeof q === "string")
+    ) {
+      return parsed;
+    }
     return [];
   } catch {
     return [];
@@ -43,7 +49,19 @@ export async function evaluateAnswer(
   ]);
 
   try {
-    return JSON.parse(response);
+    const parsed = JSON.parse(response);
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      typeof parsed.score === "number" &&
+      Number.isFinite(parsed.score)
+    ) {
+      return {
+        score: Math.max(0, Math.min(100, parsed.score)),
+        followUp: typeof parsed.followUp === "string" ? parsed.followUp : undefined,
+      };
+    }
+    return { score: 50 };
   } catch {
     return { score: 50 };
   }
@@ -96,9 +114,10 @@ export async function runAudit(
 
   rl.close();
 
+  const validScores = scores.filter((s) => Number.isFinite(s));
   const confidence_score =
-    scores.length > 0
-      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+    validScores.length > 0
+      ? Math.round(validScores.reduce((a, b) => a + b, 0) / validScores.length)
       : 0;
   const outcome: Outcome = confidence_score >= 60 ? "pass" : "flag";
 

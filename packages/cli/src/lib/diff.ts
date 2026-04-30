@@ -1,6 +1,8 @@
 import { execSync } from "node:child_process";
 import type { VouchConfig } from "@vouch/shared";
 
+const MAX_DIFF_BYTES = 10 * 1024 * 1024; // 10 MB
+
 /**
  * Runs 'git diff HEAD~1 HEAD' and returns the raw diff string.
  * Throws if not in a git repo or if there are no commits yet.
@@ -18,7 +20,12 @@ export async function getDiff(): Promise<string> {
     throw new Error("No commits exist in this repository");
   }
 
-  return execSync("git diff HEAD~1 HEAD", { encoding: "utf-8" });
+  const diff = execSync("git diff HEAD~1 HEAD", {
+    encoding: "utf-8",
+    maxBuffer: MAX_DIFF_BYTES,
+  });
+
+  return diff;
 }
 
 /**
@@ -70,7 +77,7 @@ export function filterDiff(diff: string, config: VouchConfig): string {
       const match = line.match(/diff --git a\/.+? b\/(.+)/);
       currentFilePath = match?.[1] || "";
       inFileSection = shouldIncludeFile(currentFilePath, config);
-      result.push(line);
+      if (inFileSection) result.push(line);
     } else if (inFileSection) {
       result.push(line);
     }

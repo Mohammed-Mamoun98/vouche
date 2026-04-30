@@ -32,8 +32,14 @@ export async function loginCommand(): Promise<void> {
 
   if (selectedProvider === "openrouter") {
     openrouterKey = await ask("OpenRouter API key: ");
+    if (!openrouterKey.trim()) {
+      console.log("\nvouch: warning — OpenRouter API key is empty. AI calls will fail.");
+    }
   } else if (selectedProvider === "anthropic") {
     anthropicKey = await ask("Anthropic API key: ");
+    if (!anthropicKey.trim()) {
+      console.log("\nvouch: warning — Anthropic API key is empty. AI calls will fail.");
+    }
   } else if (selectedProvider === "ollama") {
     ollamaBaseUrl = await ask("Ollama base URL [http://localhost:11434]: ");
   }
@@ -52,8 +58,10 @@ export async function loginCommand(): Promise<void> {
     ...(developerId.trim() && { developer_id: developerId.trim() }),
   };
 
-  if (!existsSync(CREDENTIALS_DIR)) {
+  try {
     mkdirSync(CREDENTIALS_DIR, { recursive: true });
+  } catch {
+    // Directory already exists — safe to proceed
   }
 
   writeFileSync(CREDENTIALS_PATH, JSON.stringify(creds, null, 2), { mode: 0o600 });

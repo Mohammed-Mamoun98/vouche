@@ -48,6 +48,22 @@ export function getApiKey(provider: string): string {
   );
 }
 
+const REQUEST_TIMEOUT_MS = 30_000;
+const MAX_RETRIES = 3;
+
+async function retryWithBackoff(
+  fn: (attempt: number) => Promise<Response>,
+  attempt = 1,
+): Promise<Response> {
+  const response = await fn(attempt);
+  if (attempt < MAX_RETRIES && (response.status === 429 || response.status === 503)) {
+    const delay = Math.min(1000 * 2 ** (attempt - 1) + Math.random() * 500, 8000);
+    await new Promise((r) => setTimeout(r, delay));
+    return retryWithBackoff(fn, attempt + 1);
+  }
+  return response;
+}
+
 async function openrouterChat(
   model: string,
   apiKey: string,
@@ -56,17 +72,26 @@ async function openrouterChat(
     content: string;
   }>,
 ): Promise<string> {
-  const response = await fetch(
-    "https://openrouter.ai/api/v1/chat/completions",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ model, messages }),
-    },
-  );
+  const response = await retryWithBackoff(async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          signal: controller.signal,
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({ model, messages }),
+        },
+      );
+    } finally {
+      clearTimeout(timer);
+    }
+  });
 
   if (!response.ok) {
     throw new Error(
@@ -89,10 +114,19 @@ async function ollamaChat(
   }>,
 ): Promise<string> {
   const url = `${baseUrl}/api/chat`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, messages }),
+  const response = await retryWithBackoff(async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, {
+        signal: controller.signal,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages }),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   });
 
   if (!response.ok) {
@@ -116,19 +150,28 @@ async function anthropicChat(
   const systemMsg = messages.find((m) => m.role === "system");
   const otherMessages = messages.filter((m) => m.role !== "system");
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model,
-      system: systemMsg?.content,
-      messages: otherMessages,
-      max_tokens: 1024,
-    }),
+  const response = await retryWithBackoff(async () => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch("https://api.anthropic.com/v1/messages", {
+        signal: controller.signal,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model,
+          system: systemMsg?.content,
+          messages: otherMessages,
+          max_tokens: 1024,
+        }),
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   });
 
   if (!response.ok) {

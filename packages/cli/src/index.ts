@@ -37,5 +37,5 @@ async function main() {
 
 main().catch((err) => {
   console.error(`vouch: ${err.message}`);
-  process.exit(0); // Never block a push due to a Vouch bug
+  process.exit(1);
 });
