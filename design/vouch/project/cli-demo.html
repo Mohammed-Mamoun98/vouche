@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vouch CLI — Live Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0b0b0b; --bg1: #111; --bg2: #161616; --bg3: #1e1e1e;
+    --border: #252525; --border2: #2e2e2e;
+    --text: #e2e2e2; --text2: #888; --text3: #4a4a4a;
+    --accent: #c8f135; --red: #f04444; --yellow: #f5a623;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  html, body { height: 100%; background: var(--bg); font-family: var(--mono); overflow: hidden; }
+  #root { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+function usePlayhead(duration) {
+  const [t, setT] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  const intervalRef = useRef(null);
+  const lastRef = useRef(null);
+  const tRef = useRef(0);
+
+  useEffect(() => {
+    if (!playing) { clearInterval(intervalRef.current); lastRef.current = null; return; }
+    intervalRef.current = setInterval(() => {
+      const now = Date.now();
+      if (lastRef.current != null) {
+        const dt = (now - lastRef.current) / 1000;
+        tRef.current = Math.min(tRef.current + dt, duration);
+        setT(tRef.current);
+        if (tRef.current >= duration) { setPlaying(false); }
+      }
+      lastRef.current = now;
+    }, 50);
+    return () => clearInterval(intervalRef.current);
+  }, [playing, duration]);
+
+  const toggle = useCallback(() => setPlaying(p => !p), []);
+  const seek = useCallback((newT) => {
+    tRef.current = Math.max(0, Math.min(newT, duration));
+    setT(tRef.current);
+    lastRef.current = null;
+  }, [duration]);
+
+  return { t, playing, toggle, seek };
+}
+
+// ─── TIMELINE SCRIPT ──────────────────────────────────────────────────────────
+// Each entry: { t: seconds, type, content }
+const SCRIPT = [
+  // Shell prompt appears
+  { t: 0.3,  type: "prompt",  content: "" },
+  // User types git push command
+  { t: 0.8,  type: "type",    content: "git push origin feat/auth-refactor", speed: 38, id: "cmd" },
+  // Git output
+  { t: 2.6,  type: "line",    content: "Enumerating objects: 11, done.", color: "var(--text2)" },
+  { t: 2.85, type: "line",    content: "Counting objects: 100% (11/11), done.", color: "var(--text2)" },
+  { t: 3.1,  type: "line",    content: "Delta compression using up to 10 threads", color: "var(--text2)" },
+  { t: 3.35, type: "line",    content: "Compressing objects: 100% (7/7), done.", color: "var(--text2)" },
+  { t: 3.6,  type: "line",    content: "Writing objects: 100% (7/7), 4.21 KiB | 4.21 MiB/s, done.", color: "var(--text2)" },
+  { t: 3.85, type: "blank" },
+  // Vouch intercepts
+  { t: 4.1,  type: "banner" },
+  { t: 4.7,  type: "line",    content: "  branch    feat/auth-refactor", color: "var(--text2)", indent: true },
+  { t: 4.85, type: "line",    content: "  commit    a1b2c3d", color: "var(--text2)", mono: true, indent: true },
+  { t: 5.0,  type: "line",    content: "  author    Mo Khalil <mo@acme.dev>", color: "var(--text2)", indent: true },
+  { t: 5.15, type: "blank" },
+  // Diff summary
+  { t: 5.3,  type: "diff" },
+  { t: 5.9,  type: "blank" },
+  // Starting interview
+  { t: 6.1,  type: "line",    content: "Starting audit interview  ·  3 questions  ·  claude-3-7-sonnet", color: "var(--accent)", bold: true },
+  { t: 6.4,  type: "divider" },
+  { t: 6.6,  type: "blank" },
+  // Q1
+  { t: 6.8,  type: "qlabel",  content: "Question 1 / 3" },
+  { t: 7.0,  type: "type",    content: "Walk me through this auth refactor. What problem were you solving and why now?", speed: 55, id: "q1", color: "var(--text)" },
+  { t: 8.6,  type: "blank" },
+  { t: 8.7,  type: "alabel" },
+  { t: 8.85, type: "type",    content: "The old JWT setup had no refresh token support — sessions expired after 1h and users got hard-logged-out. I added a sliding window refresh with a 7-day max lifetime.", speed: 60, id: "a1", color: "var(--accent)", isAnswer: true },
+  { t: 11.2, type: "blank" },
+  // Q2
+  { t: 11.5, type: "qlabel",  content: "Question 2 / 3" },
+  { t: 11.7, type: "type",    content: "Explain the token rotation strategy. What happens if a refresh token is stolen and used twice?", speed: 55, id: "q2", color: "var(--text)" },
+  { t: 13.3, type: "blank" },
+  { t: 13.4, type: "alabel" },
+  { t: 13.55,type: "type",    content: "Um... it gets invalidated? I think there's a check somewhere. I'm not totally sure of the exact implementation — I pulled it from a library.", speed: 55, id: "a2", color: "var(--yellow)", isAnswer: true },
+  { t: 15.5, type: "blank" },
+  // Q3
+  { t: 15.8, type: "qlabel",  content: "Question 3 / 3" },
+  { t: 16.0, type: "type",    content: "What happens to active sessions when a user changes their password?", speed: 55, id: "q3", color: "var(--text)" },
+  { t: 17.2, type: "blank" },
+  { t: 17.3, type: "alabel" },
+  { t: 17.45,type: "type",    content: "Sessions get invalidated — I added logic to the password change handler that clears all tokens for that user.", speed: 60, id: "a3", color: "var(--accent)", isAnswer: true },
+  { t: 19.5, type: "blank" },
+  // Score
+  { t: 19.7, type: "divider" },
+  { t: 19.9, type: "scoring" },
+  { t: 21.5, type: "result" },
+];
+
+const TOTAL_DURATION = 24;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function typeProgress(t, startT, text, speed) {
+  if (t < startT) return "";
+  const chars = Math.floor((t - startT) * speed);
+  return text.slice(0, Math.min(chars, text.length));
+}
+
+function visible(t, startT) { return t >= startT; }
+
+// ─── TERMINAL LINES ───────────────────────────────────────────────────────────
+
+function TermLine({ color = "var(--text2)", children, style = {} }) {
+  return <div style={{ fontSize: 12, lineHeight: 1.7, color, ...style }}>{children}</div>;
+}
+
+function Cursor({ blink = true }) {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    if (!blink) return;
+    const id = setInterval(() => setOn(v => !v), 530);
+    return () => clearInterval(id);
+  }, [blink]);
+  return <span style={{ display: "inline-block", width: 7, height: 13, background: "var(--accent)", opacity: on ? 1 : 0, verticalAlign: "middle", marginLeft: 1, transition: "opacity 0.05s" }} />;
+}
+
+function VouchBanner() {
+  return (
+    <div style={{ margin: "4px 0 2px", display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <div style={{ width: 18, height: 18, background: "var(--accent)", borderRadius: 4, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <svg viewBox="0 0 12 12" fill="none" style={{ width: 10, height: 10 }}>
+            <path d="M6 1L10.5 4v4L6 11 1.5 8V4L6 1z" fill="#0b0b0b" />
+          </svg>
+        </div>
+        <span style={{ color: "var(--accent)", fontWeight: 500, fontSize: 13, letterSpacing: "-0.02em" }}>vouch</span>
+      </div>
+      <span style={{ color: "var(--text3)", fontSize: 12 }}>·</span>
+      <span style={{ color: "var(--text2)", fontSize: 12 }}>intercepting push</span>
+      <span style={{ marginLeft: "auto", fontSize: 10, color: "var(--text3)", fontFamily: "'IBM Plex Sans', sans-serif" }}>v1.4.2</span>
+    </div>
+  );
+}
+
+function DiffBlock() {
+  return (
+    <div style={{ borderLeft: "2px solid var(--border2)", paddingLeft: 12, margin: "2px 0" }}>
+      <div style={{ fontSize: 11, color: "var(--text3)", marginBottom: 4 }}>src/auth/jwt.ts  ·  +127  −43</div>
+      {[
+        { t: "+", c: "var(--accent)", l: "+ import { createRefreshToken, rotateToken } from './refresh';" },
+        { t: "+", c: "var(--accent)", l: "+ export const REFRESH_TTL = 7 * 24 * 60 * 60 * 1000;" },
+        { t: "+", c: "var(--accent)", l: "+ export async function issueTokenPair(userId: string) {" },
+        { t: " ", c: "var(--text3)", l: "   const access = signJWT({ sub: userId }, '1h');" },
+        { t: "-", c: "var(--red)",    l: "- return { access };" },
+        { t: "+", c: "var(--accent)", l: "+  const refresh = await createRefreshToken(userId);" },
+        { t: "+", c: "var(--accent)", l: "+  return { access, refresh };" },
+        { t: " ", c: "var(--text3)", l: " }" },
+      ].map((row, i) => (
+        <div key={i} style={{ fontSize: 11, lineHeight: 1.65, color: row.c, fontFamily: "var(--mono)", whiteSpace: "pre" }}>
+          {row.t} {row.l}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ScoringLine({ t, startT }) {
+  const elapsed = Math.max(0, t - startT);
+  const score = Math.min(52, Math.floor(elapsed * 32));
+  const barW = Math.min(score / 100, 1);
+  const barColor = score >= 80 ? "var(--accent)" : score >= 65 ? "var(--yellow)" : "var(--red)";
+
+  return (
+    <div style={{ marginTop: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <span style={{ fontSize: 11, color: "var(--text3)", fontFamily: "'IBM Plex Sans', sans-serif" }}>Analyzing responses</span>
+        <span style={{ fontSize: 12, color: barColor, fontWeight: 500 }}>{score}%</span>
+      </div>
+      <div style={{ width: 280, height: 3, background: "var(--border2)", borderRadius: 2, overflow: "hidden" }}>
+        <div style={{ width: `${barW * 100}%`, height: "100%", background: barColor, borderRadius: 2, transition: "width 0.05s linear, background 0.3s" }} />
+      </div>
+    </div>
+  );
+}
+
+function ResultBlock() {
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "rgba(240,68,68,0.08)", border: "1px solid rgba(240,68,68,0.2)", borderRadius: 6, padding: "10px 14px" }}>
+        <span style={{ color: "var(--red)", fontSize: 14, flexShrink: 0 }}>⚑</span>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 500, color: "var(--red)", marginBottom: 3, fontFamily: "'IBM Plex Sans', sans-serif" }}>Push flagged · confidence 52%</div>
+          <div style={{ fontSize: 11, color: "var(--text2)", lineHeight: 1.6, fontFamily: "'IBM Plex Sans', sans-serif" }}>
+            Developer could not explain the refresh token rotation strategy or theft protection behavior.
+          </div>
+          <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+            <span style={{ fontSize: 10, color: "var(--text3)", fontFamily: "'IBM Plex Sans', sans-serif" }}>Your manager has been notified.</span>
+            <span style={{ fontSize: 10, color: "var(--accent)", fontFamily: "'IBM Plex Sans', sans-serif", cursor: "pointer" }}>View in dashboard →</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ marginTop: 8, fontSize: 11, color: "var(--text3)" }}>
+        <span style={{ color: "var(--red)" }}>✗</span>  Push blocked — resolve with your manager to proceed.
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN ─────────────────────────────────────────────────────────────────────
+
+function CLIDemo() {
+  const { t, playing, toggle, seek } = usePlayhead(TOTAL_DURATION);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [t]);
+
+  // Compute which "typing" lines are done (for cursor placement)
+  const typeItems = SCRIPT.filter(e => e.type === "type");
+  const activeType = [...typeItems].reverse().find(item => t >= item.t);
+  const isTypingDone = (id) => {
+    const item = SCRIPT.find(e => e.id === id);
+    if (!item) return false;
+    const typed = typeProgress(t, item.t, item.content, item.speed);
+    return typed.length === item.content.length;
+  };
+
+  const progress = t / TOTAL_DURATION;
+
+  return (
+    <div style={{ width: "100vw", height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: 24, gap: 16 }}>
+
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <div style={{ width: 16, height: 16, background: "var(--accent)", borderRadius: 3, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg viewBox="0 0 12 12" fill="none" style={{ width: 9, height: 9 }}>
+            <path d="M6 1L10.5 4v4L6 11 1.5 8V4L6 1z" fill="#0b0b0b" />
+          </svg>
+        </div>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--text2)", letterSpacing: "0.04em" }}>VOUCH CLI · AUDIT FLOW</span>
+      </div>
+
+      {/* Terminal window */}
+      <div style={{
+        width: "100%", maxWidth: 720,
+        background: "#0e0e0e",
+        border: "1px solid #222",
+        borderRadius: 10,
+        overflow: "hidden",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.03)",
+      }}>
+        {/* Title bar */}
+        <div style={{ height: 38, background: "#161616", borderBottom: "1px solid #1e1e1e", display: "flex", alignItems: "center", padding: "0 14px", gap: 7 }}>
+          <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#3a3a3a" }} />
+          <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#3a3a3a" }} />
+          <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#3a3a3a" }} />
+          <div style={{ flex: 1, textAlign: "center", fontSize: 11, color: "#444", letterSpacing: "0.02em" }}>
+            mo@acme — bash — ~/projects/api-service
+          </div>
+        </div>
+
+        {/* Terminal body */}
+        <div ref={scrollRef} style={{ padding: "16px 20px 20px", minHeight: 420, maxHeight: "60vh", overflowY: "auto", fontFamily: "var(--mono)", fontSize: 12 }}>
+
+          {/* Prompt + command */}
+          {visible(t, 0.3) && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 0, marginBottom: 2 }}>
+              <span style={{ color: "var(--accent)", marginRight: 6, userSelect: "none", flexShrink: 0 }}>~/api-service</span>
+              <span style={{ color: "#5a5a5a", marginRight: 8, flexShrink: 0 }}>$</span>
+              <span style={{ color: "var(--text)" }}>
+                {typeProgress(t, 0.8, "git push origin feat/auth-refactor", 38)}
+                {t >= 0.8 && !isTypingDone("cmd") && <Cursor blink={false} />}
+              </span>
+            </div>
+          )}
+
+          {/* Git output */}
+          {[
+            { t: 2.6,  text: "Enumerating objects: 11, done." },
+            { t: 2.85, text: "Counting objects: 100% (11/11), done." },
+            { t: 3.1,  text: "Delta compression using up to 10 threads" },
+            { t: 3.35, text: "Compressing objects: 100% (7/7), done." },
+            { t: 3.6,  text: "Writing objects: 100% (7/7), 4.21 KiB | 4.21 MiB/s, done." },
+          ].map((row, i) => visible(t, row.t) && (
+            <TermLine key={i} color="var(--text3)">{row.text}</TermLine>
+          ))}
+
+          {visible(t, 3.85) && <div style={{ height: 8 }} />}
+
+          {/* Vouch banner */}
+          {visible(t, 4.1) && (
+            <div style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)", padding: "8px 0", margin: "0 0 6px" }}>
+              <VouchBanner />
+            </div>
+          )}
+
+          {/* Commit meta */}
+          {visible(t, 4.7) && <TermLine color="var(--text2)">  branch   <span style={{ color: "var(--accent)", fontWeight: 500 }}>feat/auth-refactor</span></TermLine>}
+          {visible(t, 4.85) && <TermLine color="var(--text2)">  commit   <span style={{ fontFamily: "var(--mono)", color: "var(--text3)" }}>a1b2c3d</span></TermLine>}
+          {visible(t, 5.0) && <TermLine color="var(--text2)">  author   Mo Khalil &lt;mo@acme.dev&gt;</TermLine>}
+
+          {visible(t, 5.15) && <div style={{ height: 8 }} />}
+
+          {/* Diff */}
+          {visible(t, 5.3) && <DiffBlock />}
+
+          {visible(t, 5.9) && <div style={{ height: 8 }} />}
+
+          {/* Interview start */}
+          {visible(t, 6.1) && (
+            <TermLine color="var(--accent)" style={{ fontWeight: 500 }}>
+              ◆  Starting audit interview  ·  3 questions  ·  claude-3-7-sonnet
+            </TermLine>
+          )}
+          {visible(t, 6.4) && <div style={{ height: 1, background: "var(--border)", margin: "6px 0" }} />}
+          {visible(t, 6.6) && <div style={{ height: 6 }} />}
+
+          {/* Q1 */}
+          {visible(t, 6.8) && (
+            <div style={{ fontSize: 10, color: "var(--text3)", letterSpacing: "0.08em", marginBottom: 5, fontFamily: "'IBM Plex Sans', sans-serif", textTransform: "uppercase" }}>
+              Question 1 / 3
+            </div>
+          )}
+          {visible(t, 7.0) && (
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: "var(--text3)", marginRight: 8, userSelect: "none" }}>?</span>
+              <span style={{ color: "var(--text)" }}>
+                {typeProgress(t, 7.0, "Walk me through this auth refactor. What problem were you solving and why now?", 55)}
+                {t >= 7.0 && !isTypingDone("q1") && <Cursor blink={false} />}
+              </span>
+            </div>
+          )}
+          {visible(t, 8.7) && (
+            <div style={{ marginBottom: 4, display: "flex", gap: 8 }}>
+              <span style={{ color: "var(--accent)", userSelect: "none", flexShrink: 0, marginRight: 0 }}>›</span>
+              <span style={{ color: "var(--accent)" }}>
+                {typeProgress(t, 8.85, "The old JWT setup had no refresh token support — sessions expired after 1h and users got hard-logged-out. I added a sliding window refresh with a 7-day max lifetime.", 60)}
+                {t >= 8.85 && !isTypingDone("a1") && <Cursor blink={false} />}
+              </span>
+            </div>
+          )}
+
+          {visible(t, 11.2) && <div style={{ height: 8 }} />}
+
+          {/* Q2 */}
+          {visible(t, 11.5) && (
+            <div style={{ fontSize: 10, color: "var(--text3)", letterSpacing: "0.08em", marginBottom: 5, fontFamily: "'IBM Plex Sans', sans-serif", textTransform: "uppercase" }}>
+              Question 2 / 3
+            </div>
+          )}
+          {visible(t, 11.7) && (
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: "var(--text3)", marginRight: 8 }}>?</span>
+              <span style={{ color: "var(--text)" }}>
+                {typeProgress(t, 11.7, "Explain the token rotation strategy. What happens if a refresh token is stolen and used twice?", 55)}
+                {t >= 11.7 && !isTypingDone("q2") && <Cursor blink={false} />}
+              </span>
+            </div>
+          )}
+          {visible(t, 13.4) && (
+            <div style={{ marginBottom: 4, display: "flex", gap: 8 }}>
+              <span style={{ color: "var(--yellow)", flexShrink: 0 }}>›</span>
+              <span style={{ color: "var(--yellow)" }}>
+                {typeProgress(t, 13.55, "Um... it gets invalidated? I think there's a check somewhere. I'm not totally sure of the exact implementation — I pulled it from a library.", 55)}
+                {t >= 13.55 && !isTypingDone("a2") && <Cursor blink={false} />}
+              </span>
+            </div>
+          )}
+
+          {visible(t, 15.5) && <div style={{ height: 8 }} />}
+
+          {/* Q3 */}
+          {visible(t, 15.8) && (
+            <div style={{ fontSize: 10, color: "var(--text3)", letterSpacing: "0.08em", marginBottom: 5, fontFamily: "'IBM Plex Sans', sans-serif", textTransform: "uppercase" }}>
+              Question 3 / 3
+            </div>
+          )}
+          {visible(t, 16.0) && (
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: "var(--text3)", marginRight: 8 }}>?</span>
+              <span style={{ color: "var(--text)" }}>
+                {typeProgress(t, 16.0, "What happens to active sessions when a user changes their password?", 55)}
+                {t >= 16.0 && !isTypingDone("q3") && <Cursor blink={false} />}
+              </span>
+            </div>
+          )}
+          {visible(t, 17.3) && (
+            <div style={{ marginBottom: 4, display: "flex", gap: 8 }}>
+              <span style={{ color: "var(--accent)", flexShrink: 0 }}>›</span>
+              <span style={{ color: "var(--accent)" }}>
+                {typeProgress(t, 17.45, "Sessions get invalidated — I added logic to the password change handler that clears all tokens for that user.", 60)}
+                {t >= 17.45 && !isTypingDone("a3") && <Cursor blink={false} />}
+              </span>
+            </div>
+          )}
+
+          {visible(t, 19.5) && <div style={{ height: 8 }} />}
+          {visible(t, 19.7) && <div style={{ height: 1, background: "var(--border)", margin: "4px 0 8px" }} />}
+
+          {/* Scoring */}
+          {visible(t, 19.9) && !visible(t, 21.5) && <ScoringLine t={t} startT={19.9} />}
+
+          {/* Result */}
+          {visible(t, 21.5) && <ResultBlock />}
+
+          {/* Final blinking cursor */}
+          {visible(t, 22.5) && (
+            <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+              <span style={{ color: "var(--accent)" }}>~/api-service</span>
+              <span style={{ color: "#5a5a5a" }}>$</span>
+              <Cursor blink={true} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Playback controls */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", maxWidth: 720 }}>
+        <button onClick={toggle} style={{
+          background: "none", border: "1px solid var(--border2)", borderRadius: 6,
+          width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", color: "var(--text2)", flexShrink: 0, fontSize: 11,
+          transition: "border-color 0.15s, color 0.15s",
+        }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.color = "var(--text2)"; }}
+        >
+          {playing ? "⏸" : "▶"}
+        </button>
+
+        {/* Scrubber */}
+        <div style={{ flex: 1, height: 3, background: "var(--border)", borderRadius: 2, position: "relative", cursor: "pointer" }}
+          onClick={e => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const frac = (e.clientX - rect.left) / rect.width;
+            seek(frac * TOTAL_DURATION);
+          }}
+        >
+          <div style={{ width: `${progress * 100}%`, height: "100%", background: "var(--accent)", borderRadius: 2, transition: "width 0.1s linear" }} />
+          <div style={{ position: "absolute", top: "50%", left: `${progress * 100}%`, transform: "translate(-50%,-50%)", width: 9, height: 9, borderRadius: "50%", background: "var(--accent)", boxShadow: "0 0 6px rgba(200,241,53,0.5)" }} />
+        </div>
+
+        <span style={{ fontSize: 10, color: "var(--text3)", fontFamily: "var(--mono)", flexShrink: 0, minWidth: 36 }}>
+          {Math.floor(t)}s
+        </span>
+
+        <button onClick={() => seek(0)} style={{
+          background: "none", border: "1px solid var(--border2)", borderRadius: 6,
+          padding: "4px 8px", cursor: "pointer", color: "var(--text3)", fontSize: 10,
+          fontFamily: "var(--mono)", transition: "border-color 0.15s, color 0.15s",
+        }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border2)"; e.currentTarget.style.color = "var(--text3)"; }}
+        >
+          restart
+        </button>
+      </div>
+
+      {/* Caption */}
+      <div style={{ fontSize: 11, color: "var(--text3)", fontFamily: "'IBM Plex Sans', sans-serif", textAlign: "center", maxWidth: 500 }}>
+        Vouch intercepts <span style={{ color: "var(--text2)", fontFamily: "var(--mono)" }}>git push</span> and interviews the developer before code ships.
+        Low-confidence sessions are flagged and the push is blocked.
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<CLIDemo />);
+</script>
+</body>
+</html>
