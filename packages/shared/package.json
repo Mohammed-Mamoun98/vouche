@@ -5,6 +5,7 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc -p .",
+    "lint": "biome check src/",
     "typecheck": "tsc -p . --noEmit"
   },
   "devDependencies": {

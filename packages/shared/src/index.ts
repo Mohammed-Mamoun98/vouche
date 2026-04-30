@@ -1,5 +1,2 @@
-export const sharedUtil = (): string => {
-  return "shared utility";
-};
-
 export * from "./types";
+export * from "./api";
