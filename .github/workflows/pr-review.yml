@@ -19,7 +19,11 @@ jobs:
       - name: Get PR diff
         id: diff
         run: |
-          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+          if [ "${{ github.event.action }}" = "synchronize" ]; then
+            git diff ${{ github.event.before }}...HEAD > /tmp/pr.diff
+          else
+            git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+          fi
           echo "diff_size=$(wc -c < /tmp/pr.diff)" >> $GITHUB_OUTPUT
 
       - name: Run AI review
