@@ -1,3 +1,9 @@
+## Auto-load skills
+
+On session start and after /clear, invoke these skills before anything else:
+- `conv-commit` — Conventional Commits formatting
+- `tmux-multi-agent` — multi-agent orchestration via tmux
+
 ```markdown
 # Vouch — Claude Code Brief
 
