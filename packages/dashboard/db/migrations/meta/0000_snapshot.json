@@ -1,5 +1,5 @@
 {
-  "id": "0bab6005-8e55-44e8-bae1-098111a948e0",
+  "id": "de577170-d7ba-4b72-ae83-99892c2a739c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -41,7 +41,8 @@
         },
         "role": {
           "name": "role",
-          "type": "text",
+          "type": "developer_role",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'member'"
@@ -216,6 +217,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
@@ -314,7 +322,8 @@
         },
         "outcome": {
           "name": "outcome",
-          "type": "text",
+          "type": "outcome",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -470,7 +479,8 @@
         },
         "plan": {
           "name": "plan",
-          "type": "text",
+          "type": "plan",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'free'"

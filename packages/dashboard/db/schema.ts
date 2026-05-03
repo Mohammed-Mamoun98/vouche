@@ -2,19 +2,22 @@ import {
   index,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   text,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
 
+const planEnum = pgEnum("plan", ["free", "team", "enterprise"]);
+const roleEnum = pgEnum("developer_role", ["admin", "member"]);
+const outcomeEnum = pgEnum("outcome", ["pass", "flag", "skip"]);
+
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").unique(),
-  plan: text("plan", { enum: ["free", "team", "enterprise"] })
-    .notNull()
-    .default("free"),
+  plan: planEnum("plan").notNull().default("free"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -30,9 +33,7 @@ export const developers = pgTable(
     githubUsername: text("github_username"),
     email: text("email"),
     name: text("name").notNull(),
-    role: text("role", { enum: ["admin", "member"] })
-      .notNull()
-      .default("member"),
+    role: roleEnum("role").notNull().default("member"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -72,7 +73,7 @@ export const sessions = pgTable(
     commitMessage: text("commit_message").notNull().default(""),
     diffSummary: text("diff_summary").notNull().default(""),
     modelUsed: text("model_used").notNull().default(""),
-    outcome: text("outcome", { enum: ["pass", "flag", "skip"] }).notNull(),
+    outcome: outcomeEnum("outcome").notNull(),
     confidenceScore: integer("confidence_score").notNull().default(0),
     durationSeconds: integer("duration_seconds").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -107,6 +108,9 @@ export const sessionQuestions = pgTable(
     question: text("question").notNull(),
     answer: text("answer").notNull().default(""),
     questionScore: integer("question_score").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("idx_session_questions_session_id").on(table.sessionId),

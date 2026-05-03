@@ -17,6 +17,7 @@ export interface SessionQuestion {
   question: string;
   answer: string;
   question_score: number;
+  created_at: string;
 }
 
 export interface Session {

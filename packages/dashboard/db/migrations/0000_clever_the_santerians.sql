@@ -1,10 +1,25 @@
+DO $$ BEGIN
+  CREATE TYPE "plan" AS ENUM('free', 'team', 'enterprise');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  CREATE TYPE "developer_role" AS ENUM('admin', 'member');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
+DO $$ BEGIN
+  CREATE TYPE "outcome" AS ENUM('pass', 'flag', 'skip');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE TABLE "developers" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"team_id" uuid NOT NULL,
 	"github_username" text,
 	"email" text,
 	"name" text NOT NULL,
-	"role" text DEFAULT 'member' NOT NULL,
+	"role" "developer_role" DEFAULT 'member' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -23,7 +38,8 @@ CREATE TABLE "session_questions" (
 	"order" integer NOT NULL,
 	"question" text NOT NULL,
 	"answer" text DEFAULT '' NOT NULL,
-	"question_score" integer DEFAULT 0 NOT NULL
+	"question_score" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "sessions" (
@@ -35,7 +51,7 @@ CREATE TABLE "sessions" (
 	"commit_message" text DEFAULT '' NOT NULL,
 	"diff_summary" text DEFAULT '' NOT NULL,
 	"model_used" text DEFAULT '' NOT NULL,
-	"outcome" text NOT NULL,
+	"outcome" "outcome" NOT NULL,
 	"confidence_score" integer DEFAULT 0 NOT NULL,
 	"duration_seconds" integer DEFAULT 0 NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -45,7 +61,7 @@ CREATE TABLE "teams" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"slug" text,
-	"plan" text DEFAULT 'free' NOT NULL,
+	"plan" "plan" DEFAULT 'free' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "teams_slug_unique" UNIQUE("slug")
 );
